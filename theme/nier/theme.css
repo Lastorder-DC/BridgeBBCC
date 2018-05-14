@@ -45,12 +45,12 @@ img.dccon					{	max-height:100px; }
 		구독인 줄 알았지만 테스트였습니다 Kappa Kappa
 	</div>	
 */
-@keyframes SubsAni { 50%	{ color:red; } }
+@keyframes SubsAni { 50%	{ color:black; } }
 .chat_subscribe_box,
 .chat_cheer_box			{	text-align:center; 
 											animation:SubsAni 6 1s ease; }
 /* 후원 금액 */
-.chat_cheer_text									{ color:red; display:inline-block; }
+.chat_cheer_text									{ display:inline-block; }
 /* 후원 아이콘 */
 .chat_cheer_text img.cheer_icon		{	max-height:1em; vertical-align: middle; }
 
@@ -94,7 +94,7 @@ html								{	font-family:'cwtexyen', 'Jeju Gothic', serif;
 											
 .chat_nickname_box,
 .chat_badge_box 		{	display:inline-block; }
-.chat_badge_box			{ padding-left: 5px; }
+.chat_badge_box			{ padding-left: 5px; filter: grayscale(1); }
 .chat_outer_box .chat_msg_box,
 .chat_lower_box			{ clear:right; }
 
@@ -153,12 +153,39 @@ html								{	font-family:'cwtexyen', 'Jeju Gothic', serif;
 {	
 	/* .chat_clip_by의 absolute position을 위해 설정 */
 	position:relative;
-}	
+    display: -webkit-box;
+    display: -moz-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: box;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -moz-box-orient: vertical;
+    -o-box-orient: vertical;
+    -webkit-flex-direction: column;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    margin: 0;
+    margin-bottom: 1rem;
+    background-color: #dcd8c0;
+    padding: 0.5rem;
+}
+
+.chat_clip_box:before
+{
+    content: "[ 동영상 데이터 ]";
+    margin: -0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.8rem;
+    background-color: #454138;
+    color: #bab5a1;
+}
 
 .chat_clip_box img
 {
 	/* 사실상 이 속성으로 .chat_clip_box의 높이를 조절 */
-	height:56px;
+	height:200px;
 	/* .chat_clip_box의 나머지 DOM을 오른쪽에 배치시키기 위해 float을 이용 */
 	float:left;
 }
