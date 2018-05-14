@@ -99,7 +99,7 @@ html								{	font-family:'cwtexyen', 'Jeju Gothic', serif;
 .chat_lower_box			{ clear:right; }
 
 .chat_msg_box							{	white-space:pre-line; word-break:break-word;
-														max-height:100px; padding:0 0 5px 0; margin: 0 10px 10px 10px; }
+														max-height:100px; padding:0 0 5px 0; margin: 0 10px 0 10px; }
 .chat_msg_box.image_only	{	text-align:center; }
 
 
@@ -166,7 +166,6 @@ html								{	font-family:'cwtexyen', 'Jeju Gothic', serif;
     -ms-flex-direction: column;
     flex-direction: column;
     margin: 0;
-    margin-bottom: 1rem;
     background-color: #dcd8c0;
     padding: 0.5rem;
 }
