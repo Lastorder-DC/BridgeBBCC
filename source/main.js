@@ -724,20 +724,20 @@ if (configData.loadDcCons) {
           for (const idx in keywordsWithIndex) {
             const keywordData = keywordsWithIndex[idx];
             const keyword = keywordData.keyword;
-            if(message.indexOf(`~${keyword}`) !== -1)
+            if(message.indexOf(`${keyword}`) !== -1)
             {
               const dccon = dcConsData[keywordData.dcconIndex];
 
               if(dccon.url !== undefined && typeof(dccon.url) === "string" && dccon.url.startsWith('http'))
               {
-                message = message.split(`~${keyword}`).join(`<img class="dccon" src="${dccon.url}" />`);
+                message = message.split(`${keyword}`).join(`<img class="dccon" src="${dccon.url}" />`);
               }
               else if(dccon.uri !== undefined && typeof(dccon.uri) === "string" && dccon.uri.startsWith('http'))
               {
-                message = message.split(`~${keyword}`).join(`<img class="dccon" src="${dccon.uri}" />`);
+                message = message.split(`${keyword}`).join(`<img class="dccon" src="${dccon.uri}" />`);
               }
               else {
-                message = message.split(`~${keyword}`).join(`<img class="dccon" src="${configData.dcConsURI + dcConsSubURI + dccon.name}" />`);
+                message = message.split(`${keyword}`).join(`<img class="dccon" src="${configData.dcConsURI + dcConsSubURI + dccon.name}" />`);
               }
 
             }
