@@ -14,6 +14,7 @@ configDefault = {
   debugLevel        : 2,                // 0:미표시, 1:console.log, 2:addChatMessage
   useDisplayName    : true,             // 닉네임으로 이름을 표시할지
   loadDcCons        : true,             // 디씨콘을 불러올지
+  loadChzzkEmojis   : true,             // 치지직 이모티콘을 이미지로 표시할지
   dcConsURI         : "",               /* 불러올 디씨콘 Uri.
                                            로컬 디씨콘을 이용할 경우 공백으로 둔다.   */
   chzzkDonationMsg  : "☆ {!0:{amount}원 }후원 ! ☆",
@@ -132,6 +133,8 @@ addChatMessage = function(nick, message, data) {
   // DOM Element 생성
   var chatNicknameBox = document.createElement("div");
   chatNicknameBox.classList.add("chat_nickname_box");
+  var chatBadgeBox = document.createElement("div");
+  chatBadgeBox.classList.add("chat_badge_box");
   var chatUpperBox = document.createElement("div");
   chatUpperBox.classList.add("chat_upper_box");
   var chatMessageBox = document.createElement("div");
@@ -157,6 +160,15 @@ addChatMessage = function(nick, message, data) {
       chatNicknameBox.style.color = data.color;
     }
 
+    // 뱃지: 추후 구현을 위해 badges 데이터를 콘솔에 로깅
+    // TODO: CHZZK badges 구조 파악 후 이미지 표시 구현
+    if (data.badges && data.badges.length > 0) {
+      console.log("[BridgeBBCC] CHZZK badges data (추후 구현 참고):", JSON.stringify(data.badges));
+      chatBadgeBox.classList.add("empty");
+    } else {
+      chatBadgeBox.classList.add("empty");
+    }
+
     if (data.subMonths != undefined) {
     // 구독 메세지 추가
       chatLowerBox.innerHTML =
@@ -178,6 +190,7 @@ addChatMessage = function(nick, message, data) {
 
 
   // 페이지에 Element 연결
+  chatUpperBox.appendChild(chatBadgeBox);
   chatUpperBox.appendChild(chatNicknameBox);
   chatOuterBox.appendChild(chatUpperBox);
   chatOuterBox.upper = chatUpperBox;
@@ -221,6 +234,7 @@ var concatChatMessage = function(nick, message, data) {
 }
 
 var applyReplace = function(message, data){ return message; };
+var applyChzzkEmoji = function(message, data){ return message; };
 var applyDcCon = function(message, data){ return message; };
 var applyMessage = function(message, data) {
   // HTML 이스케이핑
@@ -229,6 +243,7 @@ var applyMessage = function(message, data) {
   }
 
   message = applyReplace(message, data);
+  message = applyChzzkEmoji(message, data);
   message = applyDcCon(message, data);
 
   return message;
@@ -302,8 +317,8 @@ setScale();
 /* 설정 파일 확인 및 디버그 내용 출력 함수 정의 */
 var completeCount = 0;
 var checkComplete = function() {
-  /* CSS, 디씨콘, 설정 = 3개 */
-  var num = 3;
+  /* CSS, 디씨콘, 치지직 이모티콘, 설정 = 4개 */
+  var num = 4;
   if (++completeCount == num) {
     var width = Number(getComputedStyle(document.body).width.slice(0,-2));
     width = Math.max(12, parseInt(width/20))+"px";
@@ -512,6 +527,30 @@ else {
 
 
 
+/* 치지직 이모티콘 적용 활성화
+ * CHZZK 채팅 이벤트의 emojis 필드는 { "이모티콘코드": "이미지URL", ... } 형태의 맵.
+ * 메시지 내 {: 이모티콘코드 :} 패턴을 이미지 태그로 치환한다.
+ */
+if (configData.loadChzzkEmojis) {
+  applyChzzkEmoji = function(message, data) {
+    if (!data.emojis || typeof data.emojis !== "object") { return message; }
+    var regex = /\{:([^:]+):\}/g;
+    return message.replace(regex, function(match, code) {
+      var url = data.emojis[code];
+      if (!url) { return ""; }
+      return '<img class="chzzk_emoji" src="' + url + '" alt="' + code + '" />';
+    });
+  };
+  debugLog("치지직 이모티콘을 적용했습니다.");
+  checkComplete();
+}
+else {
+  debugLog("설정에 따라 치지직 이모티콘을 적용하지 않았습니다.");
+  checkComplete();
+}
+
+
+
 /* 명령어 정의 */
 var commandExecute = function(exe, arg) {
   switch (exe) {
@@ -638,7 +677,9 @@ function handleChzzkChat(data) {
   var chatData = {
     nick: nick,
     message: message,
-    escape: true
+    escape: true,
+    emojis: data.emojis || null,   // { "이모티콘코드": "이미지URL", ... } 맵
+    badges: data.badges || null    // 추후 뱃지 표시 구현 시 사용
   };
 
   // muteUser 적용
