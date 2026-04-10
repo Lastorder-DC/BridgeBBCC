@@ -11,6 +11,8 @@ var STORAGE_KEYS = {
   EXPIRES_AT:    'chzzkTokenExpiresAt'
 };
 
+var TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // 만료 5분 전부터 갱신 시도
+
 var AUTH_SERVER_URL = '';
 
 function setAuthServerUrl(url) {
@@ -46,11 +48,21 @@ function clearTokens() {
 }
 
 /**
+ * 암호학적으로 안전한 랜덤 세션 ID를 생성합니다.
+ */
+function generateSessionId() {
+  var array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  var hex = Array.from(array).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  return 'bbcc-' + Date.now() + '-' + hex;
+}
+
+/**
  * 화면 중앙에 로그인 링크를 크게 표시합니다. (OBS에서 팝업 불가 대응)
  * @returns {{ sessionId: string, overlay: HTMLElement }} 세션ID와 오버레이 요소
  */
 function showLoginOverlay() {
-  var sessionId = 'bbcc-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  var sessionId = generateSessionId();
   var loginUrl = AUTH_SERVER_URL + '/auth/login?session=' + encodeURIComponent(sessionId);
 
   var overlay = document.createElement('div');
@@ -189,7 +201,7 @@ function getAccessToken() {
   }
 
   // 만료까지 5분 미만이면 갱신
-  if (Date.now() > stored.expiresAt - 5 * 60 * 1000) {
+  if (Date.now() > stored.expiresAt - TOKEN_REFRESH_BUFFER_MS) {
     if (!stored.refreshToken) {
       clearTokens();
       return Promise.reject(new Error('리프레시 토큰 없음'));

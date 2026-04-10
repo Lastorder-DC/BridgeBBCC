@@ -607,6 +607,16 @@ defaultColors = [
   "#9ACD32", "#FF4500", "#2E8B57", "#DAA520", "#D2691E",
   "#5F9EA0", "#1E90FF", "#FF69B4", "#8A2BE2", "#00FF7F"];
 
+/**
+ * 닉네임 기반으로 색상을 자동 배정합니다.
+ * @param {string} nick
+ * @returns {string} 색상 코드
+ */
+function getDefaultColorForNick(nick) {
+  var n = nick.charCodeAt(0) + (nick.charCodeAt(1) || 0) * new Date().getDate();
+  return defaultColors[n % defaultColors.length];
+}
+
 
 
 /* CHZZK 채팅 연동 초기화 */
@@ -640,8 +650,7 @@ function handleChzzkChat(data) {
   }
 
   // 개인 색상 (치지직은 별도 색상 정보가 없으므로 닉네임 기반 자동 배정)
-  var n = realNick.charCodeAt(0) + (realNick.charCodeAt(1) || 0) * new Date().getDate();
-  chatData.color = defaultColors[n % defaultColors.length];
+  chatData.color = getDefaultColorForNick(realNick);
 
   // 링크 파싱
   if ((configData.linkReplaceMsg||"").length > 0) {
@@ -684,11 +693,10 @@ function handleChzzkDonation(data) {
   var message = data.content || "";
   var amount = (data.extras && data.extras.payAmount) ? Number(data.extras.payAmount) : 0;
 
-  var n = realNick.charCodeAt(0) + (realNick.charCodeAt(1) || 0) * new Date().getDate();
   addChatMessage(realNick, message, {
     nick: nick,
     donation: amount,
-    color: defaultColors[n % defaultColors.length],
+    color: getDefaultColorForNick(realNick),
     escape: true
   });
 }
@@ -706,11 +714,10 @@ function handleChzzkSubscription(data) {
   var months = (data.extras && data.extras.month) ? Number(data.extras.month) : 0;
   var message = data.content || "";
 
-  var n = realNick.charCodeAt(0) + (realNick.charCodeAt(1) || 0) * new Date().getDate();
   addChatMessage(realNick, message, {
     nick: nick,
     subMonths: months,
-    color: defaultColors[n % defaultColors.length],
+    color: getDefaultColorForNick(realNick),
     escape: true
   });
 }
