@@ -1,26 +1,27 @@
 {
 	"name": "BridgeBBCC",
-	"version": "0.5.5",
-	"description": "Bridge Between BroadCasting and twitch Chat",
+	"version": "0.6.0",
+	"description": "Bridge Between BroadCasting and Chzzk Chat",
 	"keywords": [
-		"twitch",
+		"chzzk",
 		"chat",
-		"IRC"
+		"치지직"
 	],
 	"bugs": {
-		"url": "https://github.com/krynen/BridgeBBCC/issues"
+		"url": "https://github.com/Lastorder-DC/BridgeBBCC/issues"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/krynen/BridgeBBCC.git"
+		"url": "https://github.com/Lastorder-DC/BridgeBBCC.git"
 	},
 	"license": "MIT",
 	"author": "Mr_WaterT",
 	"dependencies": {
-		"browserify": "^16.5.1"
+		"browserify": "^16.5.1",
+		"socket.io-client": "^2.4.0"
 	},
 	"engines": {
-		"node": "^13.12.0"
+		"node": ">=13.12.0"
 	},
 	"scripts": {
 		"start": "browserify source/main.js -o lib/browserified.js"
