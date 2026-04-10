@@ -1,13 +1,14 @@
 Bridge BBCC
 ===
-version 0.5.5
+version 0.6.0
 
 
 
 ## Usage
-To compile browserified.js, use that on comandline
+To compile browserified.js, use that on commandline
 (node, npm, and browserify required)
 ```
+npm install
 npm start
 ```
 If you don't want to modify source files, just use released version.
@@ -23,4 +24,6 @@ MIT
 [JSAssist Open DCcon](https://github.com/rishubil/jsassist-open-dccon)
 By [rishubil](https://github.com/rishubil) MIT License.
 
-[Twitch Developer Documentation](https://dev.twitch.tv/docs)
+[CHZZK Open API](https://chzzk.gitbook.io/chzzk/chzzk-api)
+
+[chzzk-chat-server](https://github.com/Lastorder-DC/chzzk-chat-server)

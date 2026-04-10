@@ -1,11 +1,8 @@
 /* 기본 설정 */
 configDefault = {
   numChatMax        : 20,               // html에 한꺼번에 표시될 수 있는 메세지의 최대 갯수
-  personalColor     : false,            /* 이름 색깔을 트위치 이름색과 일치시킬지
+  personalColor     : false,            /* 이름 색깔을 채팅 이름색과 일치시킬지
                                            theme에서 제한 가능                        */
-  badgeVisible      : false,            /* 구독, 비트 등 뱃지를 표시할지
-                                           theme에서 제한 가능                        */
-  badgeChannelId    : 0,                // 구독 뱃지를 불러올 채널ID
   themeURI          : "",               /* 불러올 테마 Uri.
                                            로컬 테마를 이용할 경우 공백으로 둔다.     */
   theme             : "default",        // 사용할 테마. theme\테마\*의 파일을 사용
@@ -15,32 +12,21 @@ configDefault = {
   msgAniDuration    : 0,                /* 메세지 표시 애니메이션의 소요시간
                                            theme로부터 import                         */
   debugLevel        : 2,                // 0:미표시, 1:console.log, 2:addChatMessage
-  useDisplayName    : true,             // 한글 닉네임으로 이름을 표시할지
-  loadCheerImgs     : true,             // 비트 후원채팅을 이미지로 표시할지
-  loadTwitchCons    : true,             // 트위치 이모티콘과 구독콘을 불러올지
-  loadTwitchv2      : true,             // 움직이는 트위치 이모티콘을 불러올지
+  useDisplayName    : true,             // 닉네임으로 이름을 표시할지
   loadDcCons        : true,             // 디씨콘을 불러올지
   dcConsURI         : "",               /* 불러올 디씨콘 Uri.
                                            로컬 디씨콘을 이용할 경우 공백으로 둔다.   */
-  subMonthsMsg      : "☆ {!0:{months} 개월 }구독{0: 시작}! ☆",
-                                        // 구독 메세지를 받았을 때 추가로 출력할 텍스트
-  cheersMsg         : "☆ {!0:{bits} 비트 }후원 ! ☆",
-                                        // 비트 후원을 받았을 때 추가로 출력할 텍스트
-  clipReplaceMsg    : "[클립]",         // 클립 링크의 대체 텍스트
+  chzzkDonationMsg  : "☆ {!0:{amount}원 }후원 ! ☆",
+                                        // 치지직 후원을 받았을 때 추가로 출력할 텍스트
+  chzzkSubMsg       : "☆ {!0:{months} 개월 }구독{0: 시작}! ☆",
+                                        // 치지직 구독 메세지를 받았을 때 추가로 출력할 텍스트
   linkReplaceMsg    : "[링크]",         // (일반) 링크의 대체 텍스트
-  webSocket         : "wss://irc-ws.chat.twitch.tv:443",
-                                        /* 접속할 웹소켓
-                                           const value                                */
-  nick              : "justinfan00000", // 트위치 IRC에서 이용할 gust nickname
-  pass              : "foobar",         // 트위치 IRC에서 이용할 guest password
-  channel           : "#mr_watert",     /* 접속할 채널
-                                           "#id1,#id2,.."으로 여러 채널에 접속 가능   */
+  chzzkChannelId    : "",               // 구독할 치지직 채널 ID
+  chzzkAuthServerUrl: "http://localhost:3000",
+                                        // chzzk-chat-server 주소
   retryInterval     : 3,                // 접속에 끊겼을 때 재접속 시도 간격(초)
-  allMessageHandle  : false,            /* IRC로부터 받은 처리되지 않은 메세지를 html에 표시
-                                           "처리되지 않은 메세지를 수신했습니다"      */
-  muteUser          : ["Nightbot"],     /* html에 표시하지 않을 유저 nickname
-                                           display-name과 트위치 id를 모두 사용 가능  */
-  deleteBanMsg      : true,             // ban된 유저의 메세지를 지우기
+  allMessageHandle  : false,            /* 처리되지 않은 메세지를 html에 표시          */
+  muteUser          : [],               /* html에 표시하지 않을 유저 nickname          */
   commands          : [
     {exe:"clear", msg:"!!clear"},
     {exe:"theme", msg:"!!theme"},
@@ -61,7 +47,9 @@ var numChat = 0;
 var replaceMsgFormat = function(message, amount) {
   if (typeof amount != "number") { amount = 0; }
 
-  var retMessage = message.replace("{months}", amount).replace("{bits}", amount);
+  var retMessage = message
+    .replace("{months}", amount)
+    .replace("{amount}", amount);
   if (amount == 0) {
     retMessage = retMessage.replace(/\{0:([^\}]*)}/g, "$1").replace(/\{!0:([^\}]*)}/g, "");
   }
@@ -144,8 +132,6 @@ addChatMessage = function(nick, message, data) {
   // DOM Element 생성
   var chatNicknameBox = document.createElement("div");
   chatNicknameBox.classList.add("chat_nickname_box");
-  var chatBadgeBox = document.createElement("div");
-  chatBadgeBox.classList.add("chat_badge_box");
   var chatUpperBox = document.createElement("div");
   chatUpperBox.classList.add("chat_upper_box");
   var chatMessageBox = document.createElement("div");
@@ -171,49 +157,18 @@ addChatMessage = function(nick, message, data) {
       chatNicknameBox.style.color = data.color;
     }
 
-    if (data.badges && configData.badgeVisible) {
-    // 뱃지 채워넣고
-      data.badges.toString().split(",").forEach( function(badge) {
-        var badgeName = badge.split("/")[0];
-        var badgeTier = badge.split("/")[1];
-
-        var targets = Object.keys(badgeList||{})
-          .filter( function(name) { return (name.indexOf(badgeName + "/") == 0); } )
-          .filter( function(name) {
-            if (!isNaN(badgeTier)) { return Number(name.split("/")[1]) <= badgeTier; }
-            return (name.indexOf(badgeTier) == badgeName.length+1);
-          } )
-          .sort( function(right, left) {
-            return Number(left.split("/")[1]) - Number(right.split("/")[1]);
-          } );
-
-        if (targets.length > 0) {
-          var chatBadge = document.createElement("img");
-          chatBadge.src = badgeList[targets[0]];
-          chatBadge.classList.add("badge_" + badgeName);
-          chatBadge.classList.add("badge_" + badge);
-          chatBadgeBox.appendChild(chatBadge);
-        }
-      } );
-    }
-    if (chatBadgeBox.children.length == 0) { chatBadgeBox.classList.add("empty"); }
-
-    if (data.clip) {
-    // 클립 추가하고
-      chatLowerBox.innerHTML = data.clip + chatLowerBox.innerHTML;
-    }
     if (data.subMonths != undefined) {
-    // 후원메세지 그 위에 추가하고
+    // 구독 메세지 추가
       chatLowerBox.innerHTML =
         '<div class="chat_subscribe_box">' +
-        replaceMsgFormat(configData.subMonthsMsg, data.subMonths) +
+        replaceMsgFormat(configData.chzzkSubMsg, data.subMonths) +
         "</div>" + chatLowerBox.innerHTML;
     }
-    if (data.cheers != undefined) {
-    // 비트 메세지도 그 위에 추가하고
+    if (data.donation != undefined) {
+    // 후원 메세지 추가
       chatLowerBox.innerHTML =
         '<div class="chat_cheer_box">' +
-        replaceMsgFormat(configData.cheersMsg, data.cheers) +
+        replaceMsgFormat(configData.chzzkDonationMsg, data.donation) +
         "</div>" + chatLowerBox.innerHTML;
     }
   }
@@ -224,7 +179,6 @@ addChatMessage = function(nick, message, data) {
 
   // 페이지에 Element 연결
   chatUpperBox.appendChild(chatNicknameBox);
-  chatUpperBox.appendChild(chatBadgeBox);
   chatOuterBox.appendChild(chatUpperBox);
   chatOuterBox.upper = chatUpperBox;
   chatOuterBox.appendChild(chatLowerBox);
@@ -266,39 +220,17 @@ var concatChatMessage = function(nick, message, data) {
   else { addChatMessage.apply(this, arguments); }
 }
 
-var banChatMessage = function(nick) {
-  var children = document.getElementsByClassName("user_"+nick);
-  if (children && children.length > 0) {
-    for (var index in children) {
-      if (isNaN(Number(index))) { continue; }
-      children[index].lower.msg.innerHTML =
-        "&lt;message deleted&gt;";
-    }
-  }
-}
-
 var applyReplace = function(message, data){ return message; };
-var applyCheerIcon = function(message, data){ return message; };
-var applyTwitchCon = function(message, data){ return message; };
 var applyDcCon = function(message, data){ return message; };
 var applyMessage = function(message, data) {
-  // 색채팅 제거
-  if ( (message.indexOf("ACTION")==6) && (message.indexOf("\\u0001")!=-1) ) {
-    message = message.replace(/\\u0001/g, "").replace(/^ACTION /, "");
-  }
-
   // HTML 이스케이핑
   if ((data.escape == undefined) || (data.escape == true)) {
     message = message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
 
   message = applyReplace(message, data);
-  message = applyTwitchCon(message, data);
-  message = applyCheerIcon(message, data);
   message = applyDcCon(message, data);
 
-  var twipApply = require("./twip_apply.js");
-  if (twipApply) { message = twipApply.apply(message, data); }
   return message;
 }
 
@@ -318,19 +250,8 @@ if (window.location.href.indexOf("?") != -1) {
       }
       else if (configDefault.hasOwnProperty(key)) {
         switch (key) {
-          case "channel":
-            configData.channel = value.split(",").map( function(channel) {
-              return "#" + channel;
-            } ).join(",");
-            return;
-
           case "muteUser":
             configData.muteUser = (value==="")? []: value.split(",");
-            return;
-
-          case "webSocket":
-          case "nick":
-          case "pass":
             return;
 
           default:
@@ -381,8 +302,8 @@ setScale();
 /* 설정 파일 확인 및 디버그 내용 출력 함수 정의 */
 var completeCount = 0;
 var checkComplete = function() {
-  /* CSS, 디씨콘, 뱃지, 이모티콘+구독콘, 후원아이콘, 설정, 그리고 접속채널들 */
-  var num = 6 + configData.channel.match(/#/g).length;
+  /* CSS, 디씨콘, 설정 = 3개 */
+  var num = 3;
   if (++completeCount == num) {
     var width = Number(getComputedStyle(document.body).width.slice(0,-2));
     width = Math.max(12, parseInt(width/20))+"px";
@@ -401,13 +322,14 @@ var checkComplete = function() {
         " ■  □  □ □  ■      \n ■■□□   □  ■      \n" +
         " ■  □  □ □  ■      \n ■■□□□   □□■■。"   +
       "</div></div></center>",
-      { badges:[], escape:false }
+      { escape:false }
     )
     if (chat != null) {
       chat.upper.style.display = "none";
       chat.lower.msg.style.maxHeight = "none";
     }
     checkComplete = function(){};
+    initChzzk();
   }
 }
 if (typeof configData == "undefined") { configData = {}; }
@@ -440,11 +362,11 @@ debugLog = function(dat) {};
       debugLog = function(dat, unConcat) {
         if (unConcat) {
           addChatMessage("DEBUG", dat,
-            { badges:["moderator/1"], color:"red", escape:false });
+            { color:"red", escape:false });
         }
         else {
           concatChatMessage("DEBUG", dat,
-            { badges:["moderator/1"], color:"red", escape:false });
+            { color:"red", escape:false });
         }
       };
     }
@@ -514,170 +436,7 @@ loadCss();
 
 
 
-/* 뱃지 정보 로드 */
-var badgeList = {};
-if (configData.badgeVisible) {
-  var globalBadgeRequest = new window.XMLHttpRequest();
-  globalBadgeRequest.open(
-    "GET",
-    "https://badges.twitch.tv/v1/badges/global/display",
-    true
-  );
-
-  var handler = function(response) {
-    var data = JSON.parse(response)["badge_sets"];
-
-    Object.keys(data).forEach( function(name) {
-      var tiers = data[name].versions||{};
-      Object.keys(tiers).forEach( function(tier) {
-        badgeList[name + "/" + tier] = tiers[tier]["image_url_1x"];
-      } );
-    } );
-  };
-
-  globalBadgeRequest.onreadystatechange = function(evt) {
-    if (globalBadgeRequest.readyState == 4) {
-      if (globalBadgeRequest.status == 200) {
-        handler(globalBadgeRequest.responseText);
-
-        if (configData.badgeChannelId && Number(configData.badgeChannelId)>0) {
-          var channelBadgeUrl = "https://badges.twitch.tv/v1/badges/channels/";
-          channelBadgeUrl += configData.badgeChannelId + "/display";
-
-          var channelBadgeRequest = new window.XMLHttpRequest();
-          channelBadgeRequest.open("GET", channelBadgeUrl, true);
-
-          channelBadgeRequest.onreadystatechange = function(evt) {
-            if (channelBadgeRequest.readyState == 4) {
-              if (channelBadgeRequest.status == 200) {
-                handler(channelBadgeRequest.responseText);
-
-                debugLog("뱃지 정보를 모두 불러왔습니다.");
-              }
-              else {
-                debugLog(
-                  "스트리머 고유 뱃지를 불러오는 데 실패했습니다." +
-                  "\n에러 코드 " + channelBadgeRequest.status);
-              }
-
-              checkComplete();
-            }
-          }
-
-          channelBadgeRequest.send(null);
-        }
-        else {
-          debugLog("뱃지 정보를 불러왔습니다.");
-          checkComplete();
-        }
-      }
-      else {
-        debugLog(
-          "뱃지 정보를 불러오는 데 실패했습니다." +
-          "\n에러 코드 " + globalBadgeRequest.status);
-      }
-    }
-  };
-
-  globalBadgeRequest.send(null);
-}
-
-
-
-/* 비트 후원 메시지 아이콘으로 변경*/
-var cheerList = require("./cheer_list.json");
-var cheerRegExp = new RegExp("(\\s|^)(" + cheerList.join("|") + ")(\\d+)(\\s|$)", "i");
-if (configData.loadCheerImgs) {
-  applyCheerIcon = function(message, data) {
-    if ((!data.cheers) && (data.cheers=="")) { return message; }
-
-    var matches = message;
-    var newMessage = "";
-
-    while ((matches) && (matches.match(cheerRegExp) != null)) {
-      var match = matches.match(cheerRegExp);
-
-      var remain = matches.split(match[0]);
-      newMessage += remain.shift();
-
-      matches = match[4] + remain.join(match[0]);
-      var value = match[3]>=100? (
-        match[3]>=1000? (
-          match[3]>=5000? (
-            match[3]>=10000? (
-              match[3]==100000? 100000: 10000): 5000
-          ): 1000
-        ): 100
-      ): 1;
-      newMessage +=
-        match[1] +
-        '<div class="chat_cheer_text"><img class="cheer_icon" src="./images/cheer/' +
-        match[2] + value +
-        '.gif"/>' + match[3] + "</div> ";
-    }
-
-    return newMessage + (matches? matches: "");
-  };
-
-  debugLog("후원 아이콘을 불러왔습니다.");
-  checkComplete();
-}
-else {
-  debugLog("설정에 의해 후원 아이콘을 불러오지 않았습니다.");
-  checkComplete();
-}
-
-
-
-/* 디씨콘 및 구독콘 로드 및 적용 */
-if (configData.loadTwitchCons) {
-  var twitchConsUrlTemplate = "https://static-cdn.jtvnw.net/emoticons/v2/";
-
-  applyTwitchCon = function(message, data) {
-    if ( !(data && data.emotes) || (data.emotes.length==0) ) { return message; }
-
-    // 받은 emotes 데이터를 가공
-    var emotes = {};
-    data.emotes.split("/").forEach( function(emote) {
-      var emoteDataArray = emote.split(/[:,-]/g);
-      var emoteId = emoteDataArray[0];
-      var from = Number(emoteDataArray[1]);
-      var to = Number(emoteDataArray[2]);
-      emotes[data.message.slice(from, to+1)] = emoteId;
-    } );
-
-    // 가공된 데이터를 이용해 메세지를 변조
-    Object.keys(emotes)
-      .sort( function(a,b) { return b.length - a.length; } )
-      .forEach( function(emote) {
-        var emoteRegExp = new RegExp(
-          "( |^)(" + emote
-            .replace(/</g,"&lt;").replace(/>/g,"&gt;")
-            .replace(/\(/g, "\\(").replace(/\)/g, "\\)") +
-          ")(\\s|$)"
-        );
-        var emoteElement =
-          '<img class="twitch_emote" src="' +
-          twitchConsUrlTemplate +
-          emotes[emote] +
-          (configData.loadTwitchv2? "/default": "/static") +
-          '/dark/3.0" />';
-
-        while (message.match(emoteRegExp)) {
-          message = message.replace(emoteRegExp, "$1" + emoteElement + "$3");
-        }
-      } );
-    return message;
-  };
-
-  debugLog("트위치 이모티콘과 구독콘을 적용했습니다.");
-  checkComplete();
-}
-else {
-  debugLog("설정에 따라 트위치 이모티콘과 구독콘을 불러오지 않았습니다.");
-  checkComplete();
-}
-
+/* 디씨콘 및 로드 및 적용 */
 dcConsData = [];
 var loadDcCon = function() {};
 if (configData.loadDcCons) {
@@ -702,12 +461,6 @@ if (configData.loadDcCons) {
     dcConScript.onload = function() {
       if (dcConsData.length === 0) { debugLog("디씨콘을 불러오는 데 실패했습니다."); }
       else {
-        /**
-         * reduce + spread operator
-         * 
-         * 나중에 다시 인덱스 검색을 줄이기 위해서 
-         * 리스트에 dcConsData에서의 인덱스를 추가함.
-         */
         let keywordsWithIndex = dcConsData.reduce((prev, cur, idx) => {
           const keywords = cur.keywords.map(k => {
             const obj = {};
@@ -716,7 +469,7 @@ if (configData.loadDcCons) {
             return obj;
           });
           return [...prev, ...keywords];
-        }, []); 
+        }, []);
         keywordsWithIndex.sort(function(a,b) { return b.keyword.length - a.keyword.length; } );
 
         applyDcCon = function(message, data) {
@@ -741,7 +494,7 @@ if (configData.loadDcCons) {
               }
 
             }
-          }   
+          }
 
           return message;
         };
@@ -763,7 +516,8 @@ else {
 var commandExecute = function(exe, arg) {
   switch (exe) {
   case "clear" :
-    manageMessage("@ : CLEARCHAT #\n");
+    document.getElementById("chat_wrapper").innerHTML = "";
+    numChat = 0;
     return true;
 
   case "theme" :
@@ -806,243 +560,216 @@ var commandExecute = function(exe, arg) {
 
 
 
-/* IRC 클라이언트 설정 */
-var joinCount = 0;
+/* 로그아웃 버튼 (OBS 마우스 상호작용 이용) */
+var logoutBtn = null;
+var logoutBtnTimer = null;
+var initLogoutButton = function() {
+  logoutBtn = document.createElement("button");
+  logoutBtn.id = "chzzk_logout_btn";
+  logoutBtn.textContent = "로그아웃";
+  logoutBtn.style.cssText =
+    "position:fixed;top:12px;right:12px;z-index:10000;" +
+    "background:rgba(0,0,0,0.6);color:#fff;border:1px solid rgba(255,255,255,0.4);" +
+    "padding:6px 14px;border-radius:5px;font-size:13px;cursor:pointer;" +
+    "opacity:0;transition:opacity 0.3s;pointer-events:none;";
+
+  logoutBtn.addEventListener("click", function() {
+    var chzzkAuth = require("./chzzkAuth");
+    chzzkAuth.logout().then(function() {
+      window.localStorage.clear();
+      location.reload();
+    });
+  });
+
+  document.body.appendChild(logoutBtn);
+
+  document.addEventListener("mousemove", function() {
+    if (logoutBtn) {
+      logoutBtn.style.opacity = "0.85";
+      logoutBtn.style.pointerEvents = "auto";
+      if (logoutBtnTimer) { clearTimeout(logoutBtnTimer); }
+      logoutBtnTimer = setTimeout(function() {
+        if (logoutBtn) {
+          logoutBtn.style.opacity = "0";
+          logoutBtn.style.pointerEvents = "none";
+        }
+      }, 3000);
+    }
+  });
+};
+initLogoutButton();
+
+
+
+/* 기본 사용자 색상 */
 defaultColors = [
   "#FF0000", "#0000FF", "#00FF00", "#B22222", "#FF7F50",
   "#9ACD32", "#FF4500", "#2E8B57", "#DAA520", "#D2691E",
   "#5F9EA0", "#1E90FF", "#FF69B4", "#8A2BE2", "#00FF7F"];
-debugLog("트위치에 접속을 시도합니다.");
-manageMessage = function() {}; // 받은 명령어 처리 함수
-var client = function() {
-  ws = new WebSocket(configData.webSocket);
-
-  ws.onopen = function() {
-    ws.send("PASS " + configData.pass + "\r\n");
-    ws.send("NICK " + configData.nick + "\r\n");
-    ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership' + "\r\n");
-    ws.send("JOIN " + configData.channel + "\r\n");
-  }
-  var onmessageEventHandler = function(evt) {
-    var lines = evt.data.toString().split(/\r\n|\r|\n/);
-    lines.pop();
-    lines.forEach( function(element) {
-      var line = JSON.stringify(element).slice(1,-1);
-      var args = line.replace(/^(:|@)/m, "").split(" ");
-
-      if (line[0] == ":") {
-      // IRC 명령어 처리
-        switch (args[1]) {
-        case "421":   // 잘못된 명령어를 보냈을 때
-        case "001":   // 웰컴 메세지
-        case "002":   // 호스트 알림
-        case "003":   // 서버 상태태
-        case "004":   // 접속초기메세지 끝
-        case "375":   // MOTD(공지사항) 시작
-        case "372":   // MOTD
-        case "376":   // MOTD 끝
-        case "CAP":   // 트위치 명령어 수신 확인 메세지
-        case "353":   // 접속자 목록(로드가 안된상태라 justinfan뿐이지만)
-        case "366":   // 이름 목록 끝
-        case "MODE":  // 관리자 권한 감지
-        case "PART":  // 서버에서 유저 접속 해제
-        case "HOSTTARGET":
-                      // 호스팅에 변화가 생겼을 때
-          break;
-
-        case "JOIN":  // 서버에 유저가 접속
-          if(args[0].search("justinfan") != -1) {
-            debugLog(
-              args[2].substring(1) + "에 접속했습니다.");
-          }
-          if(++joinCount <= configData.channel.match(/#/g).length) {
-            checkComplete();
-          }
-          break;
-
-        default:      // 미처리 메세지
-          if (configData.allMessageHandle) {
-            debugLog("처리되지 않은 메세지를 수신했습니다.<br />" + line);
-          }
-          break;
-        }
-      }
-      else if (line[0] == "@") {
-      // 트위치 명령어 처리
-        var data = {};
-        var twitchArgs = {};
-        args.shift().split(";").forEach( function(element) {
-          var keyval = element.split("=");
-          twitchArgs[keyval[0]] = keyval[1];
-        } );
-
-        switch(args[1]) {
-        case "ROOMSTATE":   // 방 정보
-          break;
 
 
 
-        case "USERNOTICE":
-          switch(twitchArgs["msg-id"]) {
-            case "sub":
-            case "resub":   // 구독 메세지 수신
-              data.subMonths = Number(twitchArgs["msg-param-cumulative-months"]);
-              break;
+/* CHZZK 채팅 연동 초기화 */
+var chzzkAuth = require("./chzzkAuth");
+var chzzkChat = require("./chzzkChat");
 
-            case "subgift":
-            case "anonsubgift":
-            case "submysterygift":
+/**
+ * CHZZK 채팅 메시지를 처리합니다.
+ * @param {object} data - CHZZK 채팅 이벤트 데이터
+ */
+function handleChzzkChat(data) {
+  if (!data) { return; }
 
-            case "rewardgift":
-            case "anongiftpaidupgrade":
+  var nick = (data.sender && data.sender.userIdHash) ? data.sender.userIdHash : "unknown";
+  var displayNick = (data.sender && data.sender.nickname) ? data.sender.nickname : nick;
+  var realNick = configData.useDisplayName ? displayNick : nick;
+  var message = data.content || "";
 
-            case "raid":
-            case "unraid":
-
-            case "ritual":
-            case "bitsbadgetier":
-
-            default:
-              if (configData.allMessageHandle) {
-                debugLog("처리되지 않은 메세지를 수신했습니다.<br />" + line);
-              }
-              break;
-          }
-          break;
-
-        case "PRIVMSG":     // 채팅 수신
-          // 이름 지정
-          var nick = args[0].split(/[!@]/g)[1];
-          nick = (nick==undefined? twitchArgs.login: nick);
-          var displayNick = twitchArgs["display-name"];
-          var realNick = "";
-          if ( (configData.useDisplayName) && (displayNick.replace(/\s/g, "")!="") ) {
-            realNick = displayNick;
-          }
-          else { realNick = nick; }
-
-          var message = args.slice(3).join(" ").substring(1);
-          data.message = message;
-          data.badges = twitchArgs.badges;
-          data.color = twitchArgs.color;
-          data.emotes = twitchArgs.emotes;
-          data.nick = nick;
-
-          // muteUser 적용
-          if (configData.muteUser) {
-            var match = configData.muteUser.find( function(element) {
-              return (element == displayNick) || (element == nick);
-            } );
-
-            if (match != undefined) break;
-          }
-
-          // 명령어 파싱
-          if (configData.commands.length > 0) {
-            if (data.badges.toString().search("broadcaster") != -1) {
-              var isBreak = false;
-              for(var index in configData.commands) {
-                var cmd = configData.commands[index];
-                if (message.search(cmd.msg) == 0) {
-                  var cmdText = cmd.exe;
-                  var cmdArgument = message.split(cmd.msg + " ");
-                  cmdArgument.shift();
-                  cmdArgument = cmdArgument.join(cmd.msg + " ");
-
-                  isBreak = isBreak || commandExecute(cmdText, cmdArgument);
-                }
-              }
-
-              if (isBreak) break;
-            }
-          }
-
-          // 링크 파싱
-          var linkRegExp = /^(https?:\/\/)?([A-Za-z0-9#%\-_=+]+\.)+[a-z]{2,}(\/[0-9A-Za-z#%&()+/\-\.:=?@_~]*)?/;
-          message.split(/\s/).forEach( function(phrase) {
-            if (phrase.match(linkRegExp)) {
-              if (
-                ((configData.clipReplaceMsg||"").length>0) &&
-                (phrase.indexOf("twitch")>=0) && (phrase.indexOf("clip")>=0)
-              ) {
-                message = message.replace(phrase, configData.clipReplaceMsg);
-              }
-              else if ((configData.linkReplaceMsg||"").length>0) {
-                message = message.replace(phrase, configData.linkReplaceMsg);
-              }
-            }
-          } );
-
-          // 유저 이름색 지정
-          if (!data.color || data.color=="") {
-            var n = realNick.charCodeAt(0) + realNick.charCodeAt(1)*new Date().getDate();
-            data.color = defaultColors[n % defaultColors.length];
-          }
-
-          // 비트 메세지 파싱
-          if (twitchArgs.bits) { data.cheers = Number(twitchArgs.bits); }
-
-          // 메세지 출력
-          addChatMessage(realNick, message, data);
-          break;
-
-        case "NOTICE":      // 공지 메세지
-          switch(twitchArgs["msg-id"]) {
-          case "host_off":  // 호스팅을 끊었을 때
-          case "host_target_went_offline":
-                            // 호스팅이 끊겼을 때
-            debugLog("호스팅이 종료되었습니다.");
-            break;
-
-          case "host_on":   // 호스팅되었을 때
-            debugLog(
-              args[5].slice(0,-1) + " 호스팅 중.\n" +
-              "호스팅중인 채팅의 전송은 지원하지 않습니다.");
-            break;
-
-          }
-          break;
-
-        case "CLEARCHAT": // 매니저가 /clear 했을 때
-          if(args.length == 4) {
-            banChatMessage(args[3].substring(1));
-          }
-          else {
-            document.getElementById("chat_wrapper").innerHTML = "";
-            numChat = 0;
-          }
-          break;
-
-        default:            // 미처리 메세지
-          if (configData.allMessageHandle) {
-            debugLog("처리되지 않은 메세지를 수신했습니다.<br />" + line);
-          }
-          break;
-        }
-      }
-      else {
-        // 서버 연결상태 확인용 ping-pong
-        if (args[0] == "PING") { ws.send("PONG :tmi.witch.tv\r\n"); }
-        else if (configData.allMessageHandle) {
-          debugLog("처리되지 않은 메세지를 수신했습니다.<br />" + line);
-        }
-      }
-    } );
-  }
-  ws.onmessage = onmessageEventHandler;
-  manageMessage = function(string) {
-    var evt = {};
-    evt.data = string;
-    onmessageEventHandler(evt);
+  var chatData = {
+    nick: nick,
+    message: message,
+    escape: true
   };
 
-  ws.onclose = function() {
-    debugLog(
-      "채팅 서버와의 연결이 종료되었습니다.<br />" +
-      configData.retryInterval + "초 후 재접속을 시도합니다.");
-      setTimeout(
-        function() { client(); },
-        configData.retryInterval * 1000 );
+  // muteUser 적용
+  if (configData.muteUser && configData.muteUser.length > 0) {
+    var muted = configData.muteUser.find(function(u) {
+      return u === nick || u === displayNick;
+    });
+    if (muted !== undefined) { return; }
   }
-};
-client();
+
+  // 개인 색상 (치지직은 별도 색상 정보가 없으므로 닉네임 기반 자동 배정)
+  var n = realNick.charCodeAt(0) + (realNick.charCodeAt(1) || 0) * new Date().getDate();
+  chatData.color = defaultColors[n % defaultColors.length];
+
+  // 링크 파싱
+  if ((configData.linkReplaceMsg||"").length > 0) {
+    var linkRegExp = /^(https?:\/\/)?([A-Za-z0-9#%\-_=+]+\.)+[a-z]{2,}(\/[0-9A-Za-z#%&()+/\-\.:=?@_~]*)?/;
+    message.split(/\s/).forEach(function(phrase) {
+      if (phrase.match(linkRegExp)) {
+        message = message.replace(phrase, configData.linkReplaceMsg);
+      }
+    });
+  }
+
+  // 명령어 파싱 (채팅 서버 권한 구분이 없으므로 CHZZK에서는 메시지 기반으로만 처리)
+  if (configData.commands && configData.commands.length > 0) {
+    for (var index in configData.commands) {
+      var cmd = configData.commands[index];
+      if (message.search(cmd.msg) === 0) {
+        var cmdText = cmd.exe;
+        var cmdArgument = message.split(cmd.msg + " ");
+        cmdArgument.shift();
+        cmdArgument = cmdArgument.join(cmd.msg + " ");
+        commandExecute(cmdText, cmdArgument);
+        return;
+      }
+    }
+  }
+
+  addChatMessage(realNick, message, chatData);
+}
+
+/**
+ * CHZZK 후원 메시지를 처리합니다.
+ * @param {object} data - CHZZK 후원 이벤트 데이터
+ */
+function handleChzzkDonation(data) {
+  if (!data) { return; }
+
+  var nick = (data.sender && data.sender.userIdHash) ? data.sender.userIdHash : "unknown";
+  var displayNick = (data.sender && data.sender.nickname) ? data.sender.nickname : nick;
+  var realNick = configData.useDisplayName ? displayNick : nick;
+  var message = data.content || "";
+  var amount = (data.extras && data.extras.payAmount) ? Number(data.extras.payAmount) : 0;
+
+  var n = realNick.charCodeAt(0) + (realNick.charCodeAt(1) || 0) * new Date().getDate();
+  addChatMessage(realNick, message, {
+    nick: nick,
+    donation: amount,
+    color: defaultColors[n % defaultColors.length],
+    escape: true
+  });
+}
+
+/**
+ * CHZZK 구독 메시지를 처리합니다.
+ * @param {object} data - CHZZK 구독 이벤트 데이터
+ */
+function handleChzzkSubscription(data) {
+  if (!data) { return; }
+
+  var nick = (data.sender && data.sender.userIdHash) ? data.sender.userIdHash : "unknown";
+  var displayNick = (data.sender && data.sender.nickname) ? data.sender.nickname : nick;
+  var realNick = configData.useDisplayName ? displayNick : nick;
+  var months = (data.extras && data.extras.month) ? Number(data.extras.month) : 0;
+  var message = data.content || "";
+
+  var n = realNick.charCodeAt(0) + (realNick.charCodeAt(1) || 0) * new Date().getDate();
+  addChatMessage(realNick, message, {
+    nick: nick,
+    subMonths: months,
+    color: defaultColors[n % defaultColors.length],
+    escape: true
+  });
+}
+
+/**
+ * CHZZK 연동을 초기화합니다.
+ * 저장된 토큰이 없으면 로그인 오버레이를 표시합니다.
+ */
+function initChzzk() {
+  chzzkAuth.setAuthServerUrl(configData.chzzkAuthServerUrl);
+  chzzkChat.setChannelId(configData.chzzkChannelId);
+  chzzkChat.setRetryInterval(configData.retryInterval);
+
+  debugLog("치지직 채팅 연결을 시도합니다.");
+
+  function doConnect() {
+    chzzkAuth.getAccessToken()
+      .then(function(accessToken) {
+        debugLog("치지직 액세스 토큰을 확인했습니다.");
+        return chzzkChat.connect(
+          handleChzzkChat,
+          handleChzzkDonation,
+          handleChzzkSubscription
+        );
+      })
+      .then(function() {
+        debugLog("치지직 채팅에 연결했습니다.");
+      })
+      .catch(function(err) {
+        // 토큰이 없거나 만료된 경우 로그인 오버레이 표시
+        debugLog("치지직 로그인이 필요합니다.", true);
+        chzzkAuth.login()
+          .then(function() {
+            debugLog("치지직 로그인 완료. 채팅 연결 중...", true);
+            return chzzkChat.connect(
+              handleChzzkChat,
+              handleChzzkDonation,
+              handleChzzkSubscription
+            );
+          })
+          .then(function() {
+            debugLog("치지직 채팅에 연결했습니다.");
+          })
+          .catch(function(e) {
+            debugLog("치지직 채팅 연결 실패: " + e.message, true);
+            // 일정 시간 후 재시도
+            setTimeout(doConnect, configData.retryInterval * 1000);
+          });
+      });
+  }
+
+  doConnect();
+
+  // 주기적 토큰 갱신 (백그라운드, 10분마다 확인)
+  setInterval(function() {
+    if (chzzkAuth.hasStoredToken()) {
+      chzzkAuth.getAccessToken().catch(function() {
+        // 갱신 실패 시 재로그인 필요 → 다음 doConnect 호출 시 처리됨
+      });
+    }
+  }, 10 * 60 * 1000);
+}
