@@ -160,11 +160,20 @@ addChatMessage = function(nick, message, data) {
       chatNicknameBox.style.color = data.color;
     }
 
-    // 뱃지: 추후 구현을 위해 badges 데이터를 콘솔에 로깅
-    // TODO: CHZZK badges 구조 파악 후 이미지 표시 구현
+    // 뱃지 이미지 표시
     if (data.badges && data.badges.length > 0) {
-      console.log("[BridgeBBCC] CHZZK badges data (추후 구현 참고):", JSON.stringify(data.badges));
-      chatBadgeBox.classList.add("empty");
+      data.badges.forEach(function(badge) {
+        if (badge.imageUrl && /^https:\/\//i.test(badge.imageUrl)) {
+          var badgeImg = document.createElement("img");
+          badgeImg.classList.add("chat_badge");
+          badgeImg.src = badge.imageUrl;
+          badgeImg.alt = badge.badgeName || "badge";
+          chatBadgeBox.appendChild(badgeImg);
+        }
+      });
+      if (chatBadgeBox.childElementCount === 0) {
+        chatBadgeBox.classList.add("empty");
+      }
     } else {
       chatBadgeBox.classList.add("empty");
     }
@@ -622,18 +631,59 @@ var initLogoutButton = function() {
 
   document.body.appendChild(logoutBtn);
 
+  /* 테스트 구독 버튼 */
+  var testSubBtn = document.createElement("button");
+  testSubBtn.id = "chzzk_test_sub_btn";
+  testSubBtn.textContent = "테스트 구독";
+  testSubBtn.style.cssText =
+    "position:fixed;top:12px;right:110px;z-index:10000;" +
+    "background:rgba(0,0,0,0.6);color:#fff;border:1px solid rgba(255,255,255,0.4);" +
+    "padding:6px 14px;border-radius:5px;font-size:13px;cursor:pointer;" +
+    "opacity:0;transition:opacity 0.3s;pointer-events:none;";
+
+  testSubBtn.addEventListener("click", function() {
+    var randomHex = function(len) {
+      var chars = "0123456789abcdef";
+      return Array.from({ length: len }, function() {
+        return chars[Math.floor(Math.random() * 16)];
+      }).join("");
+    };
+    var tierNames = ["치지직 구독", "스타터 구독", "프리미엄 구독", "팬 구독", "슈퍼팬 구독"];
+    var nickNames = ["구독자A", "열정팬", "단골시청자", "수퍼팬", "찐팬", "새구독자"];
+
+    var fakeSubData = {
+      channelId          : randomHex(32),
+      subscriberChannelId: randomHex(32),
+      subscriberNickname : nickNames[Math.floor(Math.random() * nickNames.length)],
+      tierNo             : Math.random() < 0.5 ? 1 : 2,
+      tierName           : tierNames[Math.floor(Math.random() * tierNames.length)],
+      month              : Math.floor(Math.random() * 12) + 1
+    };
+    handleChzzkSubscription(fakeSubData);
+  });
+
+  document.body.appendChild(testSubBtn);
+
   document.addEventListener("mousemove", function() {
     if (logoutBtn) {
       logoutBtn.style.opacity = "0.85";
       logoutBtn.style.pointerEvents = "auto";
-      if (logoutBtnTimer) { clearTimeout(logoutBtnTimer); }
-      logoutBtnTimer = setTimeout(function() {
-        if (logoutBtn) {
-          logoutBtn.style.opacity = "0";
-          logoutBtn.style.pointerEvents = "none";
-        }
-      }, 3000);
     }
+    if (testSubBtn) {
+      testSubBtn.style.opacity = "0.85";
+      testSubBtn.style.pointerEvents = "auto";
+    }
+    if (logoutBtnTimer) { clearTimeout(logoutBtnTimer); }
+    logoutBtnTimer = setTimeout(function() {
+      if (logoutBtn) {
+        logoutBtn.style.opacity = "0";
+        logoutBtn.style.pointerEvents = "none";
+      }
+      if (testSubBtn) {
+        testSubBtn.style.opacity = "0";
+        testSubBtn.style.pointerEvents = "none";
+      }
+    }, 3000);
   });
 };
 initLogoutButton();
