@@ -34,11 +34,11 @@ function authServerRequest(method, path, accessToken, body) {
   var options = {
     method: method,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
   };
   if (accessToken) { options.headers['Authorization'] = 'Bearer ' + accessToken; }
-  if (body) { options.body = JSON.stringify(body); }
+  if (body) { options.body = new URLSearchParams(body).toString(); }
   return fetch(AUTH_SERVER_URL + path, options)
     .then(function(res) {
       if (!res.ok) {
