@@ -103,8 +103,8 @@ function connectSocket(sessionUrl, accessToken, channelId) {
   socket.on('SYSTEM', function(data) {
     if (!data) { return; }
     // 연결 완료 메시지: sessionKey 포함
-    if (data.type === 'CONNECTED' || data.sessionKey) {
-      var sessionKey = data.sessionKey;
+    if (data.type === 'CONNECTED' || data.data.sessionKey) {
+      var sessionKey = data.data.sessionKey;
       console.log('[ChzzkChat] 연결 완료, sessionKey:', sessionKey);
 
       // 이벤트 구독 순서: 채팅 → 후원 → 구독
@@ -122,15 +122,15 @@ function connectSocket(sessionUrl, accessToken, channelId) {
   });
 
   socket.on('CHAT', function(data) {
-    if (data) { _onMessage(data); }
+    if (data) { console.log(data);_onMessage(data); }
   });
 
   socket.on('DONATION', function(data) {
-    if (data) { _onDonation(data); }
+    if (data) { console.log(data);_onDonation(data); }
   });
 
   socket.on('SUBSCRIPTION', function(data) {
-    if (data) { _onSubscription(data); }
+    if (data) { console.log(data);_onSubscription(data); }
   });
 
   socket.on('disconnect', function(reason) {
