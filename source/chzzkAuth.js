@@ -76,17 +76,14 @@ function showLoginOverlay() {
     '<div style="color:#fff;font-family:\'굴림체\',sans-serif;text-align:center;padding:20px;">' +
       '<div style="font-size:1.6em;margin-bottom:0.6em;">&#x1F513; 치지직(CHZZK) 로그인 필요</div>' +
       '<div style="font-size:1em;margin-bottom:1.2em;opacity:0.8;">' +
-        '아래 링크를 <strong>일반 브라우저</strong>에서 열어 로그인해 주세요.' +
+        '아래 버튼을 클릭해 복사된 링크를 <strong>일반 브라우저</strong>에서 열어 로그인해 주세요.' +
       '</div>' +
       '<a href="' + loginUrl + '" target="_blank" ' +
          'style="display:inline-block;background:#03c75a;color:#fff;text-decoration:none;' +
                 'font-size:1.3em;padding:0.6em 1.4em;border-radius:6px;font-weight:bold;' +
-                'word-break:break-all;">' +
-        '치지직 로그인하기' +
+                'word-break:break-all;" onclick="navigator.clipboard.writeText(this.href); return false">' +
+        '치지직 로그인 링크 복사' +
       '</a>' +
-      '<div style="margin-top:1em;font-size:0.85em;opacity:0.7;">' +
-        loginUrl +
-      '</div>' +
       '<div style="margin-top:1.4em;font-size:0.9em;opacity:0.6;">' +
         '로그인 완료 후 자동으로 연결됩니다...' +
       '</div>' +
