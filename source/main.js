@@ -769,6 +769,7 @@ function handleChzzkSubscription(data) {
  */
 function initChzzk() {
   chzzkAuth.setAuthServerUrl(configData.chzzkAuthServerUrl);
+  chzzkChat.setAuthServerUrl(configData.chzzkAuthServerUrl);
   chzzkChat.setChannelId(configData.chzzkChannelId);
   chzzkChat.setRetryInterval(configData.retryInterval);
 
